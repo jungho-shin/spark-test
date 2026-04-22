@@ -1,0 +1,36 @@
+# ---------------------------------------------------
+# 약초 24 데이터 프로젝트 .gitignore
+# ---------------------------------------------------
+
+# 1. 가상 환경 (Virtual Environment)
+venv/
+env/
+.env
+.venv/
+
+# 2. 파이썬 캐시 파일 (Byte-compiled / optimized / DLL files)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 3. 로컬 데이터 파일 (용량이 큰 CSV 등은 Git에 올리지 않습니다!)
+*.csv
+*.dat
+*.out
+herb24_bigdata.csv
+
+# 4. 로그 파일 (Log files)
+*.log
+
+# 5. IDE / 에디터 설정 파일 (개발자 개인 설정)
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 6. OS 생성 파일 (Mac / Windows)
+.DS_Store
+Thumbs.db
+
+# 7. Jupyter Notebook 체크포인트
+.ipynb_checkpoints/
