@@ -7,12 +7,12 @@ from pyspark.sql import SparkSession
 
 
 def load_data_via_connect(csv_path):
-    print("🌐 1. Spark Connect Server 연결 중 (sc://localhost:15002)...")
+    print("🌐 1. Spark Connect Server 연결 중 (sc://tst-server:15002)...")
 
     # [Point] 클라이언트는 복잡한 설정 없이 서버 주소만 필요합니다.
     # 모든 Iceberg/Hive 설정은 이미 Docker의 spark-connect 서버가 들고 있습니다.
     spark = SparkSession.builder \
-        .remote("sc://localhost:15002") \
+        .remote("sc://tst-server:15002") \
         .getOrCreate()
 
     print(f"🐼 2. Pandas로 데이터 읽기: {csv_path.name}")

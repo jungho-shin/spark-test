@@ -20,6 +20,13 @@ bad5f49a1826   postgres:15          "docker-entrypoint.s…"   About an hour ago
 ```
 
 
+## C:\Windows\System32\drivers\etc\host 에 server name 등록
+ip 는 server의 ip로 변경해 주셔야 합니다. 
+```
+192.168.45.102    tst-server
+```
+
+
 ## 실행
 1. init.py 실행
 2. dataGenerator.py 실행

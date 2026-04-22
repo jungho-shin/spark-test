@@ -14,8 +14,6 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = 'minioadmin'
 
 
 def load_data_via_connect(csv_path):
-    print("🌐 1. Spark Connect Server 연결 중 (sc://localhost:15002)...")
-
     print("🚀 1. Spark Session 초기화 (Iceberg + Hive Metastore)...")
     spark = SparkSession.builder \
         .appName("Herb24_Spark_to_Iceberg") \
@@ -28,14 +26,14 @@ def load_data_via_connect(csv_path):
                 "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
         .config("spark.sql.catalog.hive", "org.apache.iceberg.spark.SparkCatalog") \
         .config("spark.sql.catalog.hive.type", "hive") \
-        .config("spark.sql.catalog.hive.uri", "thrift://localhost:9083") \
+        .config("spark.sql.catalog.hive.uri", "thrift://tst-server:9083") \
         .config("spark.sql.catalog.hive.warehouse", "s3a://warehouse/") \
         .config("spark.sql.catalog.hive.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
-        .config("spark.sql.catalog.hive.s3.endpoint", "http://localhost:9000") \
+        .config("spark.sql.catalog.hive.s3.endpoint", "http://tst-server:9000") \
         .config("spark.sql.catalog.hive.s3.path-style-access", "true") \
         .config("spark.sql.catalog.hive.s3.access-key-id", "minioadmin") \
         .config("spark.sql.catalog.hive.s3.secret-access-key", "minioadmin") \
-        .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000") \
+        .config("spark.hadoop.fs.s3a.endpoint", "http://tst-server:9000") \
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin") \
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin") \
         .config("spark.hadoop.fs.s3a.path.style.access", "true") \
