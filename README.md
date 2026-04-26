@@ -153,36 +153,43 @@ SELECT * FROM sample;
  echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
 [sudo] password for oracle:
 127.0.0.1 minio
-(venv) oracle@DESKTOP-GLHA97V:~/project/project_f/mvp/starrocks_test/srt$ python App/load_data_with_spark_iceberg.py
-🚀 1. Spark Session 초기화 (Iceberg + Nessie REST Catalog)...
-26/04/03 23:21:06 WARN Utils: Your hostname, DESKTOP-GLHA97V resolves to a loopback address: 127.0.1.1; using 10.255.255.254 instead (on interface lo)
-26/04/03 23:21:06 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-:: loading settings :: url = jar:file:/mnt/f/project/mvp/starrocks_test/srt/venv/lib/python3.10/site-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
-Ivy Default Cache set to: /home/oracle/.ivy2/cache
-The jars for the packages stored in: /home/oracle/.ivy2/jars
+(venv) ody@odyssey-1:~/workspace/spark-test/App$ python load_data_with_spark_iceberg.py
+🚀 1. Spark Session 초기화 (Iceberg + Hive Metastore Catalog)...
+26/04/26 08:26:12 WARN Utils: Your hostname, odyssey-1 resolves to a loopback address: 127.0.1.1; using 192.168.104.211 instead (on interface ens33)
+26/04/26 08:26:12 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+:: loading settings :: url = jar:file:/home/ody/workspace/spark-test/venv/lib/python3.12/site-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /home/ody/.ivy2/cache
+The jars for the packages stored in: /home/ody/.ivy2/jars
 org.apache.iceberg#iceberg-spark-runtime-3.5_2.12 added as a dependency
 org.apache.iceberg#iceberg-aws-bundle added as a dependency
-:: resolving dependencies :: org.apache.spark#spark-submit-parent-d27384d4-88e5-492d-aeb4-3a1a726c82fc;1.0
+org.apache.hadoop#hadoop-aws added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-02d26964-b7f7-421c-be0f-bbcb4ef050c0;1.0
         confs: [default]
         found org.apache.iceberg#iceberg-spark-runtime-3.5_2.12;1.5.0 in central
         found org.apache.iceberg#iceberg-aws-bundle;1.5.0 in central
-:: resolution report :: resolve 102ms :: artifacts dl 3ms
+        found org.apache.hadoop#hadoop-aws;3.3.4 in central
+        found com.amazonaws#aws-java-sdk-bundle;1.12.262 in central
+        found org.wildfly.openssl#wildfly-openssl;1.0.7.Final in central
+:: resolution report :: resolve 222ms :: artifacts dl 7ms
         :: modules in use:
+        com.amazonaws#aws-java-sdk-bundle;1.12.262 from central in [default]
+        org.apache.hadoop#hadoop-aws;3.3.4 from central in [default]
         org.apache.iceberg#iceberg-aws-bundle;1.5.0 from central in [default]
         org.apache.iceberg#iceberg-spark-runtime-3.5_2.12;1.5.0 from central in [default]
+        org.wildfly.openssl#wildfly-openssl;1.0.7.Final from central in [default]
         ---------------------------------------------------------------------
         |                  |            modules            ||   artifacts   |
         |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
         ---------------------------------------------------------------------
-        |      default     |   2   |   0   |   0   |   0   ||   2   |   0   |
+        |      default     |   5   |   0   |   0   |   0   ||   5   |   0   |
         ---------------------------------------------------------------------
-:: retrieving :: org.apache.spark#spark-submit-parent-d27384d4-88e5-492d-aeb4-3a1a726c82fc
+:: retrieving :: org.apache.spark#spark-submit-parent-02d26964-b7f7-421c-be0f-bbcb4ef050c0
         confs: [default]
-        0 artifacts copied, 2 already retrieved (0kB/4ms)
-26/04/03 23:21:07 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+        0 artifacts copied, 5 already retrieved (0kB/8ms)
+26/04/26 08:26:12 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
 Setting default log level to "WARN".
 To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-📦 2. CSV 데이터 읽어오기: /mnt/f/project/mvp/starrocks_test/srt/herb24_100k_data.csv
+📦 2. CSV 데이터 읽어오기: /home/ody/workspace/spark-test/herb24_100k_data.csv
 root
  |-- detect_id: string (nullable = true)
  |-- user_id: integer (nullable = true)
@@ -193,28 +200,29 @@ root
  |-- device_os: string (nullable = true)
  |-- detect_time: timestamp (nullable = true)
 
-총 100000 건 로드됨
-⚡ 3. Nessie Iceberg 테이블로 적재 시작...
+총 500000 건 로드됨
+⚡ 3. HMS Iceberg 테이블로 적재 시작...
+26/04/26 08:26:23 WARN MetricsConfig: Cannot locate configuration: tried hadoop-metrics2-s3a-file-system.properties,hadoop-metrics2.properties
 ✅ 4. 적재 검증...
 +------+
 | total|
 +------+
-|100000|
+|500000|
 +------+
 
 +------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
 |detect_id                           |user_id|herb_name|confidence|latitude |longitude |device_os|detect_time        |
 +------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
-|c1a092af-e3ce-4f72-ba93-c5609a14af8d|1017   |도라지   |0.9402    |37.062741|127.671424|Android  |2025-07-20 22:11:02|
-|5d16ab5c-d272-4afb-a4e3-677e74d943a6|1581   |인삼     |0.8118    |33.814962|128.111552|Android  |2025-10-17 05:58:31|
-|371c68a8-ce61-4124-b9ce-0712456fb404|9984   |천남성   |0.6735    |36.805186|130.711549|Android  |2025-05-27 05:38:15|
-|c7349ef4-e139-4d09-887b-8f4e07994018|8667   |하수오   |0.893     |35.071697|127.554925|Android  |2025-03-28 20:36:00|
-|451f3141-8778-42dd-b00b-755ff0c9c63c|5922   |천마     |0.588     |36.608199|127.756525|Android  |2025-07-02 16:08:33|
+|7de6460f-abfd-490c-b0a9-366882919771|512    |인삼     |0.6888    |36.579949|128.190959|Android  |2025-12-10 10:29:34|
+|d36cf33c-e560-4f67-8639-68460293082b|9318   |인삼     |0.7531    |34.59787 |128.128703|Android  |2025-05-01 12:08:48|
+|b5972df6-4fad-4e9e-afd8-ecef8b735abd|2515   |산삼     |0.5541    |37.165341|130.991427|Android  |2025-05-30 07:40:47|
+|5752a51d-bfa3-46b5-a3b8-3e979b87b249|5398   |천남성   |0.6167    |34.764965|128.320756|Android  |2025-12-04 17:49:42|
+|8b763ccf-386b-451a-bdda-e417b3cc9375|1391   |인삼     |0.7303    |35.554465|130.142454|Android  |2025-02-19 17:32:49|
 +------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
 
 🎉 Iceberg 적재 완료! StarRocks에서 조회 가능:
   SELECT * FROM iceberg_catalog.test_db.detection_logs LIMIT 10;
-(venv) oracle@DESKTOP-GLHA97V:~/project/project_f/mvp/starrocks_test/srt$
+(venv) ody@odyssey-1:~/workspace/spark-test/App$
 ```
 
 -- dbBear 에서 확인
@@ -311,4 +319,13 @@ Successfully installed googleapis-common-protos-1.74.0 grpcio-1.80.0 grpcio-stat
 StarRocks 조회 확인:
   SELECT * FROM iceberg_catalog.test_db.detection_logs LIMIT 10;
 (venv) ody@odyssey-2:~/workspace/srt/App$
+```
+
+
+---
+
+# Performance TEST
+
+```commandline
+ echo "192.168.45.102 tst-server" | sudo tee -a /etc/hosts
 ```
