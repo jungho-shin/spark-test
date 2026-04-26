@@ -16,17 +16,31 @@ services:
       interval: 5s
       timeout: 5s
 
-  # 2. PostgreSQL (Hive Metastore 백엔드 DB)
-  postgres:
+  # 1-1. MinIO 버킷 자동 생성 (warehouse)
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio: { condition: service_healthy }
+    networks: [datalake-network]
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mc alias set local http://minio:9000 minioadmin minioadmin
+        mc mb -p local/warehouse || true
+        echo "warehouse bucket ready"
+
+  # 2-1. HMS 백엔드 DB (PostgreSQL)
+  hms-postgres:
     image: postgres:15
-    container_name: postgres
-    ports: ["5432:5432"]
+    container_name: hms-postgres
     environment:
-      POSTGRES_DB: metastore
       POSTGRES_USER: hive
       POSTGRES_PASSWORD: hive
+      POSTGRES_DB: metastore
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - hms-postgres-data:/var/lib/postgresql/data
     networks: [datalake-network]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
@@ -34,48 +48,66 @@ services:
       timeout: 5s
       retries: 10
 
-  # 3. Hive Metastore (Standalone)
+  # 2-2. HMS 추가 jar 다운로드 (postgres JDBC + hadoop-aws + aws-sdk)
+  hms-libs:
+    image: curlimages/curl:latest
+    container_name: hms-libs
+    user: root
+    volumes:
+      - hms-extra-libs:/libs
+    networks: [datalake-network]
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cd /libs
+        echo "Downloading PostgreSQL JDBC driver..."
+        [ -f postgresql-42.7.3.jar ] || curl -fsSL -o postgresql-42.7.3.jar \
+          https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar
+        echo "Downloading hadoop-aws..."
+        [ -f hadoop-aws-3.3.6.jar ] || curl -fsSL -o hadoop-aws-3.3.6.jar \
+          https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar
+        echo "Downloading aws-java-sdk-bundle..."
+        [ -f aws-java-sdk-bundle-1.12.367.jar ] || curl -fsSL -o aws-java-sdk-bundle-1.12.367.jar \
+          https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.367/aws-java-sdk-bundle-1.12.367.jar
+        chmod 644 *.jar
+        # hive 컨테이너의 hive 사용자(uid=1000)가 읽을 수 있도록 소유자 변경
+        chown -R 1000:1000 /libs
+        ls -la /libs
+        echo "All HMS libs ready"
+
+  # 2-3. Hive Metastore
   hive-metastore:
     image: apache/hive:4.0.0
     container_name: hive-metastore
     ports: ["9083:9083"]
-    volumes:
-      - ../drivers/postgresql-42.7.3.jar:/opt/hive/lib/postgresql.jar  # ← 추가
-      - ../drivers/hadoop-aws-3.3.4.jar:/opt/hive/lib/hadoop-aws.jar          # ← 추가
-      - ../drivers/aws-java-sdk-bundle-1.12.262.jar:/opt/hive/lib/aws-java-sdk-bundle.jar  # ← 추가
     environment:
-      AWS_ACCESS_KEY_ID: minioadmin       # ← 추가
-      AWS_SECRET_ACCESS_KEY: minioadmin   # ← 추가
-      AWS_REGION: us-east-1              # ← 추가
       SERVICE_NAME: metastore
       DB_DRIVER: postgres
       SERVICE_OPTS: >-
         -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
-        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/metastore
+        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://hms-postgres:5432/metastore
         -Djavax.jdo.option.ConnectionUserName=hive
         -Djavax.jdo.option.ConnectionPassword=hive
         -Dhive.metastore.warehouse.dir=s3a://warehouse/
-        -Dfs.s3a.endpoint=http://minio:9000
-        -Dfs.s3a.access.key=minioadmin
-        -Dfs.s3a.secret.key=minioadmin
-        -Dfs.s3a.path.style.access=true
-        -Dfs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
-        -Dfs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+    volumes:
+      - hms-warehouse:/opt/hive/data/warehouse
+      - hms-extra-libs:/opt/hive/auxlib:ro
+      - ./core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
     networks: [datalake-network]
+    depends_on:
+      hms-postgres: { condition: service_healthy }
+      hms-libs: { condition: service_completed_successfully }
+      minio: { condition: service_healthy }
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat /dev/null > /dev/tcp/localhost/9083'"]
-      # test: ["CMD-SHELL", "nc -z localhost 9083 || exit 1"]
+      # test: ["CMD-SHELL", "bash -c 'cat < /dev/tcp/localhost/9083' >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/9083'"]
       interval: 10s
       timeout: 5s
-      retries: 20
-      start_period: 60s  # 첫 실행 시 schematool -initSchema 수행으로 오래 걸림
+      retries: 12
+      start_period: 90s
 
-  # 4. Kudu Master
+  # 3. Kudu Master
   kudu-master:
     image: apache/kudu:latest
     container_name: kudu-master
@@ -93,7 +125,7 @@ services:
         --rpc_advertised_addresses=kudu-master:7050
     networks: [datalake-network]
 
-  # 5. Kudu Tablet Server
+  # 4. Kudu Tablet Server
   kudu-tserver:
     image: apache/kudu:latest
     container_name: kudu-tserver
@@ -113,7 +145,82 @@ services:
     depends_on: [kudu-master]
     networks: [datalake-network]
 
-  # 8. Apache Spark Master
+  # 5. StarRocks FE
+  starrocks-fe:
+    image: starrocks/fe-ubuntu:latest
+    container_name: starrocks-fe
+    entrypoint: /opt/starrocks/fe/bin/start_fe.sh
+    ports: ["8030:8030", "9020:9020", "9030:9030"]
+    volumes:
+      - starrocks-fe-meta:/opt/starrocks/fe/meta
+      - ./fe.conf:/opt/starrocks/fe/conf/fe.conf
+    environment: # ✨ 여기에 네트워크 대역 설정을 추가합니다!
+      - priority_networks=172.18.0.0/16
+    networks: [datalake-network]
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h127.0.0.1 -P9030 -uroot -e 'SHOW FRONTENDS' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # 6. StarRocks BE
+  starrocks-be:
+    image: starrocks/be-ubuntu:latest
+    container_name: starrocks-be
+    entrypoint: /opt/starrocks/be/bin/start_be.sh
+    ports: ["8040:8040", "9050:9050"]
+    volumes:
+      - starrocks-be-storage:/opt/starrocks/be/storage
+    environment: # ✨ BE에도 동일하게 추가합니다!
+      - priority_networks=172.18.0.0/16
+    ulimits:
+      memlock: -1
+      nproc: 65535
+      nofile: { soft: 65535, hard: 65535 }
+    depends_on:
+      starrocks-fe: { condition: service_healthy }
+    networks: [datalake-network]
+
+  # 6-1. StarRocks BE 자동 등록 (init 컨테이너)
+  starrocks-init:
+    image: starrocks/fe-ubuntu:latest
+    container_name: starrocks-init
+    depends_on:
+      starrocks-fe: { condition: service_healthy }
+      starrocks-be: { condition: service_started }
+    networks: [datalake-network]
+    restart: "no"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        echo "Waiting for BE to be ready..."
+        sleep 10
+        
+        # BE가 이미 등록되어 있는지 확인
+        EXISTING=$$(mysql -h starrocks-fe -P 9030 -u root -N -e "SHOW BACKENDS" 2>/dev/null | grep -c "starrocks-be")
+        
+        if [ "$$EXISTING" -gt 0 ]; then
+          echo "BE already registered, skipping."
+        else
+          echo "Registering BE..."
+          mysql -h starrocks-fe -P 9030 -u root -e "ALTER SYSTEM ADD BACKEND 'starrocks-be:9050';"
+          echo "BE registered successfully."
+        fi
+        
+        # BE가 Alive 될 때까지 대기
+        for i in $$(seq 1 30); do
+          ALIVE=$$(mysql -h starrocks-fe -P 9030 -u root -N -e "SHOW BACKENDS" 2>/dev/null | grep -c "true")
+          if [ "$$ALIVE" -gt 0 ]; then
+            echo "BE is alive!"
+            exit 0
+          fi
+          echo "Waiting for BE to become alive... ($$i/30)"
+          sleep 3
+        done
+        echo "WARNING: BE did not become alive within timeout"
+
+  # 7. Apache Spark
   spark:
     image: apache/spark:3.5.0
     container_name: spark
@@ -122,7 +229,7 @@ services:
     entrypoint: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     networks: [datalake-network]
 
-  # 8-1. Spark Connect Server
+  # 7-1. Spark Connect Server
   spark-connect:
     image: apache/spark:3.5.0
     container_name: spark-connect
@@ -139,42 +246,38 @@ services:
       - SPARK_DRIVER_MEMORY=2g
       - SPARK_EXECUTOR_MEMORY=2g
       - _JAVA_OPTIONS=-Xmx2g
-      - AWS_REGION=us-east-1
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=minioadmin        # MinIO 접속 키
-      - AWS_SECRET_ACCESS_KEY=minioadmin    # MinIO 시크릿
-    depends_on:
-      hive-metastore:
-        condition: service_healthy
     networks: [datalake-network]
+    depends_on:
+      hive-metastore: { condition: service_healthy }
+      minio: { condition: service_healthy }
     command: >
       /opt/spark/sbin/start-connect-server.sh
-      --packages org.apache.spark:spark-connect_2.12:3.5.0,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.0,org.apache.iceberg:iceberg-aws-bundle:1.5.0
+      --packages org.apache.spark:spark-connect_2.12:3.5.0,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.0,org.apache.iceberg:iceberg-aws-bundle:1.5.0,org.apache.hadoop:hadoop-aws:3.3.4
       --conf spark.jars.repositories=https://repo1.maven.org/maven2
-      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+      --conf spark.jars.packages=org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.0,org.apache.iceberg:iceberg-aws-bundle:1.5.0,org.apache.hadoop:hadoop-aws:3.3.4
       --conf spark.sql.catalog.hive=org.apache.iceberg.spark.SparkCatalog
       --conf spark.sql.catalog.hive.type=hive
       --conf spark.sql.catalog.hive.uri=thrift://hive-metastore:9083
       --conf spark.sql.catalog.hive.warehouse=s3a://warehouse/
-      --conf spark.sql.catalog.hive.io-impl=org.apache.iceberg.aws.s3.S3FileIO
+      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
       --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000
       --conf spark.hadoop.fs.s3a.access.key=minioadmin
       --conf spark.hadoop.fs.s3a.secret.key=minioadmin
       --conf spark.hadoop.fs.s3a.path.style.access=true
       --conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
-      --conf spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
-      --conf spark.sql.catalog.hive.s3.endpoint=http://minio:9000
-      --conf spark.sql.catalog.hive.s3.path-style-access=true
-      --conf spark.sql.catalog.hive.s3.access-key-id=minioadmin
-      --conf spark.sql.catalog.hive.s3.secret-access-key=minioadmin
-      --conf spark.sql.catalog.hive.lock-impl=org.apache.iceberg.hive.NoLockManager
+
 networks:
   datalake-network:
+    name: datalake-network    # ← 추가. 언더스코어 제거
     driver: bridge
 
 volumes:
   minio-data:
-  postgres-data:
   kudu-master-data:
   kudu-tserver-data:
+  starrocks-fe-meta:
+  starrocks-be-storage:
+  hms-postgres-data:    # 변경됨: nessie-data → hms-postgres-data
+  hms-warehouse:        # 추가됨
+  hms-extra-libs:       # 추가됨: HMS용 추가 jar 보관
   spark-ivy-cache:
