@@ -329,3 +329,106 @@ StarRocks 조회 확인:
 ```commandline
  echo "192.168.45.102 tst-server" | sudo tee -a /etc/hosts
 ```
+
+## Spark-Connect
+```commandline
+(venv) ody@odyssey-1:~/workspace/spark-test/test$ python spark_connect.py
+🌐 1. Spark Connect Server 연결 중 (sc://tst-server:15002)...
+🐼 2. Pandas로 데이터 읽기: herb24_100k_data.csv
+🚀 3. Pandas DF -> Spark DF 변환 및 전송 (건수: 500000)
+ createDataFrame : 3.0547163486480713
+⚡ 4. Iceberg 테이블 적재 시작 (hive.test_db.detection_logs)...
+ createOrReplace : 13.479490518569946
+✅ 5. 적재 데이터 검증 (Spark SQL)
+ count : 0.07395362854003906
++------+
+| total|
++------+
+|500000|
++------+
+
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+|detect_id                           |user_id|herb_name|confidence|latitude |longitude |device_os|detect_time        |
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+|7de6460f-abfd-490c-b0a9-366882919771|512    |인삼     |0.6888    |36.579949|128.190959|Android  |2025-12-10 10:29:34|
+|d36cf33c-e560-4f67-8639-68460293082b|9318   |인삼     |0.7531    |34.59787 |128.128703|Android  |2025-05-01 12:08:48|
+|b5972df6-4fad-4e9e-afd8-ecef8b735abd|2515   |산삼     |0.5541    |37.165341|130.991427|Android  |2025-05-30 07:40:47|
+|5752a51d-bfa3-46b5-a3b8-3e979b87b249|5398   |천남성   |0.6167    |34.764965|128.320756|Android  |2025-12-04 17:49:42|
+|8b763ccf-386b-451a-bdda-e417b3cc9375|1391   |인삼     |0.7303    |35.554465|130.142454|Android  |2025-02-19 17:32:49|
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+
+🎉 Iceberg 적재 완료!
+StarRocks 조회 확인:
+  SELECT * FROM iceberg_catalog.test_db.detection_logs LIMIT 10;
+(venv) ody@odyssey-1:~/workspace/spark-test/test$
+```
+
+
+## Spark-Local
+```commandline
+(venv) ody@odyssey-1:~/workspace/spark-test/test$ python spark_local.py
+🚀 1. Spark Session 초기화 (Iceberg + Hive Metastore)...
+26/04/26 08:41:46 WARN Utils: Your hostname, odyssey-1 resolves to a loopback address: 127.0.1.1; using 192.168.104.211 instead (on interface ens33)
+26/04/26 08:41:46 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+:: loading settings :: url = jar:file:/home/ody/workspace/spark-test/venv/lib/python3.12/site-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /home/ody/.ivy2/cache
+The jars for the packages stored in: /home/ody/.ivy2/jars
+org.apache.iceberg#iceberg-spark-runtime-3.5_2.12 added as a dependency
+org.apache.iceberg#iceberg-aws-bundle added as a dependency
+org.apache.hadoop#hadoop-aws added as a dependency
+com.amazonaws#aws-java-sdk-bundle added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-d889142a-82d6-41e2-831b-91be0951be90;1.0
+        confs: [default]
+        found org.apache.iceberg#iceberg-spark-runtime-3.5_2.12;1.5.0 in central
+        found org.apache.iceberg#iceberg-aws-bundle;1.5.0 in central
+        found org.apache.hadoop#hadoop-aws;3.3.4 in central
+        found com.amazonaws#aws-java-sdk-bundle;1.12.262 in central
+        found org.wildfly.openssl#wildfly-openssl;1.0.7.Final in central
+:: resolution report :: resolve 215ms :: artifacts dl 7ms
+        :: modules in use:
+        com.amazonaws#aws-java-sdk-bundle;1.12.262 from central in [default]
+        org.apache.hadoop#hadoop-aws;3.3.4 from central in [default]
+        org.apache.iceberg#iceberg-aws-bundle;1.5.0 from central in [default]
+        org.apache.iceberg#iceberg-spark-runtime-3.5_2.12;1.5.0 from central in [default]
+        org.wildfly.openssl#wildfly-openssl;1.0.7.Final from central in [default]
+        ---------------------------------------------------------------------
+        |                  |            modules            ||   artifacts   |
+        |       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+        ---------------------------------------------------------------------
+        |      default     |   5   |   0   |   0   |   0   ||   5   |   0   |
+        ---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-d889142a-82d6-41e2-831b-91be0951be90
+        confs: [default]
+        0 artifacts copied, 5 already retrieved (0kB/6ms)
+26/04/26 08:41:47 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+🐼 2. Pandas로 데이터 읽기: herb24_100k_data.csv
+🚀 3. Pandas DF -> Spark DF 변환 및 전송 (건수: 500000)
+ createDataFrame : 22.365281105041504
+⚡ 4. Iceberg 테이블 적재 시작 (hive.test_db.detection_logs)...
+26/04/26 08:42:18 WARN TaskSetManager: Stage 0 contains a task of very large size (1514 KiB). The maximum recommended task size is 1000 KiB.
+ createOrReplace : 7.361149787902832
+✅ 5. 적재 데이터 검증 (Spark SQL)
+ count : 0.12616944313049316
++------+
+| total|
++------+
+|500000|
++------+
+
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+|detect_id                           |user_id|herb_name|confidence|latitude |longitude |device_os|detect_time        |
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+|7de6460f-abfd-490c-b0a9-366882919771|512    |인삼     |0.6888    |36.579949|128.190959|Android  |2025-12-10 10:29:34|
+|d36cf33c-e560-4f67-8639-68460293082b|9318   |인삼     |0.7531    |34.59787 |128.128703|Android  |2025-05-01 12:08:48|
+|b5972df6-4fad-4e9e-afd8-ecef8b735abd|2515   |산삼     |0.5541    |37.165341|130.991427|Android  |2025-05-30 07:40:47|
+|5752a51d-bfa3-46b5-a3b8-3e979b87b249|5398   |천남성   |0.6167    |34.764965|128.320756|Android  |2025-12-04 17:49:42|
+|8b763ccf-386b-451a-bdda-e417b3cc9375|1391   |인삼     |0.7303    |35.554465|130.142454|Android  |2025-02-19 17:32:49|
++------------------------------------+-------+---------+----------+---------+----------+---------+-------------------+
+
+🎉 Iceberg 적재 완료!
+StarRocks 조회 확인:
+  SELECT * FROM iceberg_catalog.test_db.detection_logs LIMIT 10;
+(venv) ody@odyssey-1:~/workspace/spark-test/test$
+```
