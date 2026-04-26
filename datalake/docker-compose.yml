@@ -236,6 +236,7 @@ services:
     user: root
     ports:
       - "15002:15002"
+      - "4040:4040"   # ← Web UI
     volumes:
       # 1. Jar 파일 캐싱: 패키지 재다운로드 방지 (속도 향상)
       - spark-ivy-cache:/root/.ivy2
