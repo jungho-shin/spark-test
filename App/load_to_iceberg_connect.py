@@ -2,6 +2,8 @@
 load_to_iceberg.py
 Spark Connect Server 경유로 HMS 기반 Iceberg 테이블에 CSV 데이터를 적재합니다.
 """
+import time
+
 import pandas as pd
 from pathlib import Path
 from pyspark.sql import SparkSession
@@ -27,7 +29,10 @@ def load_data_via_connect(csv_path):
 
     print(f"🔄 3. Pandas DF -> Spark DF 변환 및 전송 (건수: {len(pdf)})")
     # Arrow를 통해 Spark 서버로 데이터가 전송됩니다.
+    n_start_time = time.time()
     sdf = spark.createDataFrame(pdf)
+    n_end_time = time.time()
+    print(f" createDataFrame : {n_end_time - n_start_time} ")
 
     print("⚡ 4. Iceberg 테이블 적재 시작 (hive.test_db.detection_logs)...")
     # 네임스페이스(DB)가 없으면 미리 생성. location을 s3a://로 명시해야
@@ -37,18 +42,24 @@ def load_data_via_connect(csv_path):
         "LOCATION 's3a://warehouse/test_db.db'"
     )
 
+    n_start_time = time.time()
     # 처음 생성 시에는 createOrReplace(), 이후엔 append() 추천
     (
         sdf.writeTo("hive.test_db.detection_logs")
         .tableProperty("write.format.default", "parquet")
         .createOrReplace()
     )
+    n_end_time = time.time()
+    print(f" createOrReplace : {n_end_time - n_start_time} ")
 
     print("✅ 5. 적재 데이터 검증 (Spark SQL)")
     # SQL 쿼리도 Connect 서버에서 실행되어 결과만 리턴받습니다.
+    n_start_time = time.time()
     spark.sql(
         "SELECT count(*) as total FROM hive.test_db.detection_logs"
     ).show()
+    n_end_time = time.time()
+    print(f" count : {n_end_time - n_start_time} ")
     spark.sql(
         "SELECT * FROM hive.test_db.detection_logs LIMIT 5"
     ).show(truncate=False)
