@@ -371,11 +371,12 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - airflow-home:/opt/airflow
@@ -405,12 +406,13 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       AIRFLOW__API__EXPOSE_CONFIG: "true"
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - airflow-home:/opt/airflow
@@ -436,10 +438,11 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - airflow-home:/opt/airflow
@@ -460,11 +463,12 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - airflow-home:/opt/airflow
@@ -485,13 +489,14 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
       # pyspark-connect 패키지가 worker 이미지에 필요
       _PIP_ADDITIONAL_REQUIREMENTS: "pyspark==3.5.0"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./data:/opt/spark/data   # 로컬 데이터 공유 (필요 시)
@@ -511,10 +516,11 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
+      - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - airflow-home:/opt/airflow
@@ -613,6 +619,28 @@ services:
       timeout: 5s
       retries: 10
 
+  # =========================================================
+  # 10. Git-Sync (GitLab → Airflow DAG 자동 동기화)
+  # =========================================================
+  git-sync:
+    image: registry.k8s.io/git-sync/git-sync:v4.2.1
+    container_name: git-sync
+    environment:
+      GITSYNC_REPO: "http://gitlab/root/airflow-dags.git"
+      GITSYNC_BRANCH: "main"
+      GITSYNC_PERIOD: "30s"
+      GITSYNC_ROOT: "/git"
+      GITSYNC_LINK: "current"
+      GITSYNC_USERNAME: "root"
+      GITSYNC_PASSWORD: "glpat-SzZnF2X0VXhFlNYdRPyMP286MQp1OjEH.01.0w0bgpov9"
+      GITSYNC_ONE_TIME: "false"
+    volumes:
+      - dag-sync:/git
+    networks: [datalake-network]
+    depends_on:
+      gitlab: { condition: service_healthy }
+    restart: unless-stopped
+
 
 networks:
   datalake-network:
@@ -631,6 +659,7 @@ volumes:
   spark-ivy-cache:
   airflow-postgres-data:   # Airflow 메타데이터 DB
   airflow-home:            # $AIRFLOW_HOME 공유 (Simple Auth Manager 패스워드 파일 포함)
+  dag-sync:                # git-sync → Airflow DAG 공유 볼륨
   gitlab-config:           # GitLab 설정
   gitlab-logs:             # GitLab 로그
   gitlab-data:             # GitLab 데이터 (저장소 등)
