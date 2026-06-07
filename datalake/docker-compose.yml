@@ -112,7 +112,7 @@ services:
     image: apache/kudu:latest
     container_name: kudu-master
     user: root
-    ports: ["8050:8050", "7050:7050"]
+    ports: ["8050:8051", "7050:7050"]   # 8051: Web UI, 7050: RPC
     volumes:
       - kudu-master-data:/var/lib/kudu/master
     command: ["master"]
