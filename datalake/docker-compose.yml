@@ -523,6 +523,97 @@ services:
   # ※ Flower는 Airflow 3.x에서 공식 제거되었습니다.
   #   Celery 워커 모니터링이 필요하면 별도로 mher/flower 이미지를 사용하세요.
 
+  # =========================================================
+  # 9. GitLab CE 18.11.4
+  # =========================================================
+  gitlab:
+    image: gitlab/gitlab-ce:18.11.4-ce.0
+    container_name: gitlab
+    hostname: gitlab
+    ports:
+      - "8929:80"    # Web UI (HTTP)
+      - "8443:443"   # Web UI (HTTPS)
+      - "2222:22"    # SSH (git clone)
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab:80'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+
+        # PostgreSQL 외부 연결 (전용 DB 사용)
+        postgresql['enable'] = false
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_host'] = 'gitlab-postgres'
+        gitlab_rails['db_port'] = 5432
+        gitlab_rails['db_database'] = 'gitlab'
+        gitlab_rails['db_username'] = 'gitlab'
+        gitlab_rails['db_password'] = 'gitlab'
+
+        # Redis 외부 연결 (전용 Redis 사용)
+        redis['enable'] = false
+        gitlab_rails['redis_host'] = 'gitlab-redis'
+        gitlab_rails['redis_port'] = 6379
+
+        # 메모리 최적화
+        puma['worker_processes'] = 2
+        sidekiq['concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
+        gitlab_exporter['enable'] = false
+        node_exporter['enable'] = false
+        redis_exporter['enable'] = false
+        postgres_exporter['enable'] = false
+        # grafana is removed in GitLab 18.x
+
+        # 초기 root 비밀번호
+        gitlab_rails['initial_root_password'] = 'Password1234!'
+        gitlab_rails['store_initial_root_password'] = true
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    networks: [datalake-network]
+    depends_on:
+      gitlab-postgres: { condition: service_healthy }
+      gitlab-redis: { condition: service_healthy }
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:80/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s   # GitLab 초기 기동은 최대 5분 소요
+
+  # --- GitLab 전용 PostgreSQL ---
+  gitlab-postgres:
+    image: postgres:15
+    container_name: gitlab-postgres
+    environment:
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab
+      POSTGRES_DB: gitlab
+    volumes:
+      - gitlab-postgres-data:/var/lib/postgresql/data
+    networks: [datalake-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitlab -d gitlab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- GitLab 전용 Redis ---
+  gitlab-redis:
+    image: redis:7-alpine
+    container_name: gitlab-redis
+    volumes:
+      - gitlab-redis-data:/data
+    networks: [datalake-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
 networks:
   datalake-network:
     name: datalake-network    # ← 추가. 언더스코어 제거
@@ -540,3 +631,8 @@ volumes:
   spark-ivy-cache:
   airflow-postgres-data:   # Airflow 메타데이터 DB
   airflow-home:            # $AIRFLOW_HOME 공유 (Simple Auth Manager 패스워드 파일 포함)
+  gitlab-config:           # GitLab 설정
+  gitlab-logs:             # GitLab 로그
+  gitlab-data:             # GitLab 데이터 (저장소 등)
+  gitlab-postgres-data:    # GitLab 전용 PostgreSQL
+  gitlab-redis-data:       # GitLab 전용 Redis
