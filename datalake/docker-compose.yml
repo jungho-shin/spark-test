@@ -371,7 +371,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
@@ -406,7 +406,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       AIRFLOW__API__EXPOSE_CONFIG: "true"
@@ -438,7 +438,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
     volumes:
@@ -463,7 +463,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
@@ -489,7 +489,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
@@ -516,7 +516,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs="
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current"
+      AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
     volumes:
@@ -630,7 +630,7 @@ services:
       GITSYNC_BRANCH: "main"
       GITSYNC_PERIOD: "30s"
       GITSYNC_ROOT: "/git"
-      GITSYNC_LINK: "current/apps"
+      GITSYNC_LINK: "current"
       GITSYNC_USERNAME: "root"
       GITSYNC_PASSWORD: "glpat-SzZnF2X0VXhFlNYdRPyMP286MQp1OjEH.01.0w0bgpov9"
       GITSYNC_ONE_TIME: "false"
