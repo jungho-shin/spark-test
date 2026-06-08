@@ -630,7 +630,7 @@ services:
       GITSYNC_BRANCH: "main"
       GITSYNC_PERIOD: "30s"
       GITSYNC_ROOT: "/git"
-      GITSYNC_LINK: "current"
+      GITSYNC_LINK: "current/apps"
       GITSYNC_USERNAME: "root"
       GITSYNC_PASSWORD: "glpat-SzZnF2X0VXhFlNYdRPyMP286MQp1OjEH.01.0w0bgpov9"
       GITSYNC_ONE_TIME: "false"
