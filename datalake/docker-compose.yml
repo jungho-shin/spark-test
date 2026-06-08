@@ -350,6 +350,27 @@ services:
       timeout: 5s
       retries: 10
 
+  # --- Airflow 디렉토리 권한 설정 (root로 실행, airflow-init보다 먼저 실행) ---
+  airflow-chown:
+    image: alpine:latest
+    container_name: airflow-chown
+    user: root
+    restart: "no"
+    volumes:
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /opt/airflow/logs/dag_processor
+        mkdir -p /opt/airflow/logs/scheduler
+        mkdir -p /opt/airflow/logs/worker
+        chown -R 50000:0 /opt/airflow/logs
+        chown -R 50000:0 /opt/airflow/plugins
+        chmod -R 775 /opt/airflow/logs
+        chmod -R 775 /opt/airflow/plugins
+        echo "Airflow directory permissions set successfully"
+
   # --- Airflow DB init & admin user ---
   # Airflow 3.x Simple Auth Manager:
   #   패스워드 파일: $AIRFLOW_HOME/simple_auth_manager_passwords.json.generated
@@ -362,6 +383,7 @@ services:
     depends_on:
       airflow-postgres: { condition: service_healthy }
       airflow-redis: { condition: service_healthy }
+      airflow-chown: { condition: service_completed_successfully }  # ← 권한 설정 완료 후 실행
     networks: [datalake-network]
     restart: "no"
     environment:
