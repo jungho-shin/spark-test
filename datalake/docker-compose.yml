@@ -503,6 +503,7 @@ services:
     depends_on:
       airflow-init: { condition: service_completed_successfully }
       airflow-redis: { condition: service_healthy }
+      airflow-api-server: { condition: service_healthy }
     networks: [datalake-network]
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -514,6 +515,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
+      AIRFLOW__CORE__INTERNAL_API_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x worker 필수
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
       # pyspark-connect 패키지가 worker 이미지에 필요
       _PIP_ADDITIONAL_REQUIREMENTS: "pyspark==3.5.0"
@@ -530,6 +532,7 @@ services:
     container_name: airflow-triggerer
     depends_on:
       airflow-init: { condition: service_completed_successfully }
+      airflow-api-server: { condition: service_healthy }
     networks: [datalake-network]
     environment:
       AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -541,6 +544,7 @@ services:
       AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/current/apps"
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
+      AIRFLOW__CORE__INTERNAL_API_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x triggerer 필수
     volumes:
       - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
