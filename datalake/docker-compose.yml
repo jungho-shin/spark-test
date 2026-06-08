@@ -516,7 +516,7 @@ services:
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       AIRFLOW__CORE__INTERNAL_API_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x worker 필수
-      AIRFLOW__WORKERS__EXECUTION_API_SERVER_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x task 실행 API
+      AIRFLOW__WORKERS__EXECUTION_API_SERVER_URL: "http://airflow-api-server:8080/execution/"  # ← Airflow 3.x task 실행 API (trailing slash 필수)
       SPARK_CONNECT_URL: "sc://spark-connect:15002"
       # pyspark-connect 패키지가 worker 이미지에 필요
       _PIP_ADDITIONAL_REQUIREMENTS: "pyspark==3.5.0"
@@ -546,7 +546,7 @@ services:
       AIRFLOW__SIMPLE_AUTH_MANAGER__USERS: "admin:Admin"
       AIRFLOW__SIMPLE_AUTH_MANAGER__PASSWORDS: "admin:admin"
       AIRFLOW__CORE__INTERNAL_API_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x triggerer 필수
-      AIRFLOW__WORKERS__EXECUTION_API_SERVER_URL: "http://airflow-api-server:8080"  # ← Airflow 3.x task 실행 API
+      AIRFLOW__WORKERS__EXECUTION_API_SERVER_URL: "http://airflow-api-server:8080/execution/"  # ← Airflow 3.x task 실행 API (trailing slash 필수)
     volumes:
       - dag-sync:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
