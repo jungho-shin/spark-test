@@ -632,7 +632,7 @@ services:
       GITSYNC_ROOT: "/git"
       GITSYNC_LINK: "current"
       GITSYNC_USERNAME: "root"
-      GITSYNC_PASSWORD: "glpat-SzZnF2X0VXhFlNYdRPyMP286MQp1OjEH.01.0w0bgpov9"
+      GITSYNC_PASSWORD: "glpat-ixeULhcWZfiyJCWgY_8ZXm86MQp1OjEH.01.0w12ksjgm"
       GITSYNC_ONE_TIME: "false"
     volumes:
       - dag-sync:/git
